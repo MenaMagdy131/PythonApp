@@ -1,0 +1,57 @@
+version: '3.9'
+
+services:
+
+  db:
+    image: mysql:8
+    restart: always
+    env_file: .env
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - backend
+
+  web:
+    build: .
+    env_file: .env
+    depends_on:
+      - db
+    networks:
+      - backend
+      - frontend
+    expose:
+      - "5000"
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "4444:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - web
+    networks:
+      - frontend
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    #container_name: flaskapp_phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "5555:80"
+    depends_on:
+      - db
+    networks:
+      - backend
+
+volumes:
+  db_data:
+
+networks:
+  backend:
+  frontend:
